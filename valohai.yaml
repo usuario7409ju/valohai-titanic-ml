@@ -4,8 +4,7 @@
     command:
       - python src/preprocess.py
     outputs:
-      - name: processed-data
-        path: processed.csv
+      - name: processed.csv
 
 - step:
     name: train
@@ -14,9 +13,9 @@
       - python src/train.py
     inputs:
       - name: processed-data
+        filename: processed.csv
     outputs:
-      - name: trained-model
-        path: model.joblib
+      - name: model.joblib
 
 - step:
     name: evaluate
@@ -25,7 +24,9 @@
       - python src/evaluate.py
     inputs:
       - name: processed-data
+        filename: processed.csv
       - name: trained-model
+        filename: model.joblib
 
 - pipeline:
     name: training-pipeline
@@ -40,6 +41,7 @@
         override:
           inputs:
             - name: processed-data
+              filename: processed.csv
 
       - name: evaluate
         type: execution
@@ -47,7 +49,9 @@
         override:
           inputs:
             - name: processed-data
+              filename: processed.csv
             - name: trained-model
+              filename: model.joblib
 
     edges:
       - [preprocess.output.processed.csv, train.input.processed-data]
