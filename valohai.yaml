@@ -1,47 +1,55 @@
-version: "0.2"
+- step:
+    name: preprocess
+    image: docker.io/yourdocker/titanic-ml
+    command:
+      - python src/preprocess.py
+    outputs:
+      - name: processed-data
+        path: processed.csv
 
-steps:
+- step:
+    name: train
+    image: docker.io/yourdocker/titanic-ml
+    command:
+      - python src/train.py
+    inputs:
+      - name: processed-data
+    outputs:
+      - name: trained-model
+        path: model.joblib
 
-- name: preprocess
-  image: docker.io/yourdocker/titanic-ml
-  command:
-    - python src/preprocess.py
-  outputs:
-    - processed.csv
+- step:
+    name: evaluate
+    image: docker.io/yourdocker/titanic-ml
+    command:
+      - python src/evaluate.py
+    inputs:
+      - name: processed-data
+      - name: trained-model
 
-- name: train
-  image: docker.io/yourdocker/titanic-ml
-  command:
-    - python src/train.py
-  inputs:
-    - processed.csv
-  outputs:
-    - model.joblib
+- pipeline:
+    name: training-pipeline
+    nodes:
+      - name: preprocess
+        type: execution
+        step: preprocess
 
-- name: evaluate
-  image: docker.io/yourdocker/titanic-ml
-  command:
-    - python src/evaluate.py
-  inputs:
-    - processed.csv
-    - model.joblib
+      - name: train
+        type: execution
+        step: train
+        override:
+          inputs:
+            - name: processed-data
 
-pipelines:
+      - name: evaluate
+        type: execution
+        step: evaluate
+        override:
+          inputs:
+            - name: processed-data
+            - name: trained-model
 
-- name: training-pipeline
-  nodes:
-    - name: preprocess
-      type: execution
-      step: preprocess
-
-    - name: train
-      type: execution
-      step: train
-      parents:
-        - preprocess
-
-    - name: evaluate
-      type: execution
-      step: evaluate
-      parents:
-        - train
+    edges:
+      - [preprocess.output.processed.csv, train.input.processed-data]
+      - [preprocess.output.processed.csv, evaluate.input.processed-data]
+      - [train.output.model.joblib, evaluate.input.trained-model]
